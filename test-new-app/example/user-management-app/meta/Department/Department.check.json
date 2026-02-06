@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "tableId": "tbl_dept_001"
+  },
+  "checks": [
+    {
+      "id": "chk_dept_code",
+      "expression": "code REGEXP '^[A-Z0-9_]+$'",
+      "description": "Department code must contain only uppercase letters, numbers and underscores"
+    }
+  ]
+}

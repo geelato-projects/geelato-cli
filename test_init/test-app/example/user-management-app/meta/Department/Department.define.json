@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "createdAt": "2024-01-15T10:00:00Z"
+  },
+  "table": {
+    "id": "tbl_dept_001",
+    "title": "Department",
+    "entityName": "Department",
+    "tableName": "platform_department",
+    "tableSchema": "platform",
+    "tableType": "entity",
+    "tableComment": "Department table"
+  }
+}

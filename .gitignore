@@ -1,0 +1,36 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go workspace
+go.work
+
+# Temporary files
+*.tmp
+*.bak
+
+# Geelato local config
+.geelato/config/*
+!.geelato/config/.gitkeep
+.geelato/cache/*
+!.geelato/cache/.gitkeep

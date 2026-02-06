@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "tableId": "tbl_user_001"
+  },
+  "foreignKeys": [
+    {
+      "id": "fk_user_dept",
+      "tableId": "tbl_user_001",
+      "tableName": "platform_user",
+      "columnName": "dept_id",
+      "foreignTable": "platform_department",
+      "foreignColumn": "id",
+      "onDelete": "SET_NULL",
+      "onUpdate": "CASCADE"
+    }
+  ]
+}

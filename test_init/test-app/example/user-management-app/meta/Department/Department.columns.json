@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "tableId": "tbl_dept_001"
+  },
+  "columns": [
+    {
+      "id": "col_dept_id",
+      "columnName": "id",
+      "dataType": "bigint",
+      "isPrimaryKey": true,
+      "isNullable": false,
+      "comment": "Primary key"
+    },
+    {
+      "id": "col_dept_name",
+      "columnName": "name",
+      "dataType": "varchar",
+      "length": 100,
+      "isNullable": false,
+      "comment": "Department name"
+    },
+    {
+      "id": "col_dept_code",
+      "columnName": "code",
+      "dataType": "varchar",
+      "length": 50,
+      "isNullable": false,
+      "comment": "Department code"
+    },
+    {
+      "id": "col_dept_parent_id",
+      "columnName": "parent_id",
+      "dataType": "bigint",
+      "isNullable": true,
+      "comment": "Parent department ID"
+    },
+    {
+      "id": "col_dept_created_at",
+      "columnName": "created_at",
+      "dataType": "datetime",
+      "isNullable": false,
+      "defaultValue": "CURRENT_TIMESTAMP",
+      "comment": "Creation time"
+    }
+  ]
+}

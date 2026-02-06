@@ -1,0 +1,8 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "appId": "app_user_mgmt_001",
+    "name": "user-management-app",
+    "description": "User management example application"
+  }
+}

@@ -1,0 +1,6 @@
+# Geelato CLI
+.geelato/
+
+# IDE
+.idea/
+.vscode/
