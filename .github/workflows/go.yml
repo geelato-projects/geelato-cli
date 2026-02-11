@@ -29,7 +29,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.20'
+        go-version: '1.25'
 
     - name: Get version info
       id: version
@@ -42,19 +42,19 @@ jobs:
         echo "Building version: $VERSION"
 
     - name: Build Windows exe
-      if: inputs.platform == 'all' || inputs.platform == 'windows'
+      if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'windows' }}
       run: |
         mkdir -p release
         go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-windows-amd64.exe main.go
 
     - name: Build Linux
-      if: inputs.platform == 'all' || inputs.platform == 'linux'
+      if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'linux' }}
       run: |
         mkdir -p release
         go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-linux-amd64 main.go
 
     - name: Build macOS
-      if: inputs.platform == 'all' || inputs.platform == 'darwin'
+      if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'darwin' }}
       run: |
         mkdir -p release
         go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-darwin-amd64 main.go
