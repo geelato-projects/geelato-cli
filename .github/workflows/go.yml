@@ -1,13 +1,23 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Go Build Release
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: false
+        default: ''
+      platform:
+        description: 'Target platform (windows, linux, darwin, all)'
+        required: false
+        default: 'all'
 
 jobs:
 
@@ -21,8 +31,65 @@ jobs:
       with:
         go-version: '1.20'
 
-    - name: Build
-      run: go build -v ./...
+    - name: Get version info
+      id: version
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [ -z "$VERSION" ]; then
+          VERSION="dev-$(date +%Y%m%d)-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
 
-    - name: Test
-      run: go test -v ./...
+    - name: Build Windows exe
+      if: inputs.platform == 'all' || inputs.platform == 'windows'
+      run: |
+        mkdir -p release
+        go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-windows-amd64.exe main.go
+
+    - name: Build Linux
+      if: inputs.platform == 'all' || inputs.platform == 'linux'
+      run: |
+        mkdir -p release
+        go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-linux-amd64 main.go
+
+    - name: Build macOS
+      if: inputs.platform == 'all' || inputs.platform == 'darwin'
+      run: |
+        mkdir -p release
+        go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-darwin-amd64 main.go
+
+    - name: List release files
+      run: |
+        echo "Release files:"
+        ls -lh release/
+
+    - name: Create checksums
+      run: |
+        cd release
+        sha256sum geelato-* > SHA256SUMS
+        cat SHA256SUMS
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release
+        path: release/
+        retention-days: 5
+
+    - name: Create GitHub Release
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release/**
+        tag_name: ${{ steps.version.outputs.version }}
+        name: Release ${{ steps.version.outputs.version }}
+        draft: false
+        prerelease: false
+        body: |
+          Geelato CLI ${{ steps.version.outputs.version }} Release
+          
+          Built from commit: ${{ github.sha }}
+          Platform: ${{ github.event.inputs.platform || 'all' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
