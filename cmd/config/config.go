@@ -6,7 +6,7 @@ import (
 
 var ConfigCmd = &cobra.Command{
 	Use:   "config",
-	Short: "配置管理",
+	Short: "config(配置管理)",
 	Long:  `管理 Geelato CLI 工具的配置信息`,
 }
 

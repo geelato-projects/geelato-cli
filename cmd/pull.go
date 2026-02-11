@@ -6,17 +6,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/geelato/cli/internal/config"
+	"github.com/geelato/cli/internal/app"
 	"github.com/geelato/cli/internal/sync"
 	"github.com/geelato/cli/pkg/logger"
 	"github.com/geelato/cli/pkg/progress"
+	"github.com/spf13/cobra"
 )
 
 func NewPullCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "pull",
-		Short: "Pull from cloud",
+		Short: "Pull from cloud(从云端拉取最新应用)",
 		Long: `Pull the latest application from cloud platform
 
 Example:
@@ -43,15 +43,23 @@ func runPull() error {
 		return nil
 	}
 
-	cfg := config.Get()
-	if cfg == nil {
-		logger.Error("Configuration not loaded. Please run 'geelato config set api.url <url>' first.")
+	// 从 geelato.json 读取 repo 配置
+	appConfig, err := app.LoadAppConfig(cwd)
+	if err != nil {
+		logger.Errorf("Failed to load app config: %v", err)
+		return err
+	}
+
+	repoURL := app.GetRepoFromConfig(appConfig)
+	if repoURL == "" {
+		logger.Error("Repo URL not configured. Please run 'geelato config repo <url>' first.")
 		return nil
 	}
 
-	if cfg.API.URL == "" {
-		logger.Error("API URL not configured. Please run 'geelato config set api.url <url>' first.")
-		return nil
+	_, _, apiURL, err := app.ParseRepoURL(repoURL)
+	if err != nil {
+		logger.Errorf("Failed to parse repo URL: %v", err)
+		return err
 	}
 
 	progressBar := progress.NewBar(100, "Pulling")
@@ -59,7 +67,7 @@ func runPull() error {
 		progressBar.Start()
 	}
 
-	svc, err := sync.NewSyncService(cwd, cfg.API.URL, cfg.API.Key)
+	svc, err := sync.NewSyncService(cwd, apiURL, "")
 	if err != nil {
 		if progressBar != nil {
 			progressBar.Stop()

@@ -17,7 +17,7 @@ import (
 func NewModelCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "model",
-		Short: "模型管理",
+		Short: "model(模型管理)",
 		Long:  `管理数据模型，包括创建模型、添加字段、视图、检查约束、权限等操作`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -126,7 +126,7 @@ func getAppIdFromGeelatoJSON(filePath string) (string, error) {
 func NewModelListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "列出所有模型",
+		Short: "list(列出所有模型)",
 		Long:  `列出当前应用中的所有模型`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runModelList()
@@ -199,7 +199,7 @@ func NewModelAddCmd() *cobra.Command {
 func NewAddFieldSubCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "field <entity-name> <name:type[:length]> [comment]",
-		Short: "添加字段",
+		Short: "field(添加字段)",
 		Long: `向指定模型添加新字段
 
 字段类型: string, int, bigint, decimal, datetime, boolean, text
@@ -422,7 +422,7 @@ func runAddView(entityName, viewName string) error {
 func NewAddCheckSubCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "check <entity-name> <expression> [description]",
-		Short: "添加检查约束",
+		Short: "check(添加检查约束)",
 		Long:  `向指定模型添加检查约束`,
 		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -2,8 +2,11 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/geelato/cli/internal/config"
 )
@@ -97,4 +100,70 @@ func (m *Manager) FindApps(searchDir string) ([]ApplicationInfo, error) {
 func parseAppInfo(content string, info *ApplicationInfo) {
 	// Simplified JSON parsing for basic info
 	// A full implementation would use json.Unmarshal
+}
+
+// LoadAppConfig 加载 geelato.json 配置文件
+func LoadAppConfig(appPath string) (map[string]interface{}, error) {
+	geelatoFile := filepath.Join(appPath, "geelato.json")
+	content, err := os.ReadFile(geelatoFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read geelato.json: %w", err)
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(content, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse geelato.json: %w", err)
+	}
+
+	return config, nil
+}
+
+// GetRepoFromConfig 从配置中获取 repo 地址
+func GetRepoFromConfig(config map[string]interface{}) string {
+	// 新结构：config.repo.url
+	if configObj, ok := config["config"].(map[string]interface{}); ok {
+		if repo, ok := configObj["repo"].(map[string]interface{}); ok {
+			if url, ok := repo["url"].(string); ok {
+				return url
+			}
+		}
+	}
+	// 兼容旧结构：repo（顶层）
+	if repo, ok := config["repo"].(string); ok {
+		return repo
+	}
+	return ""
+}
+
+// ParseRepoURL 解析 repo URL，返回 tenant, appCode, apiURL
+func ParseRepoURL(repoURL string) (tenant, appCode, apiURL string, err error) {
+	repoURL = strings.TrimSpace(repoURL)
+
+	if !strings.HasPrefix(repoURL, "http://") && !strings.HasPrefix(repoURL, "https://") {
+		repoURL = "http://" + repoURL
+	}
+
+	u, err := url.Parse(repoURL)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to parse URL: %w", err)
+	}
+
+	path := strings.TrimPrefix(u.Path, "/")
+	path = strings.TrimSuffix(path, "/")
+
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 {
+		return "", "", "", fmt.Errorf("URL path should contain tenant and app code (e.g., /tenant/app-code)")
+	}
+
+	tenant = parts[0]
+	appCode = parts[1]
+
+	if tenant == "" || appCode == "" {
+		return "", "", "", fmt.Errorf("tenant and app code cannot be empty")
+	}
+
+	apiURL = u.Scheme + "://" + u.Host
+
+	return tenant, appCode, apiURL, nil
 }

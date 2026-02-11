@@ -15,7 +15,7 @@ import (
 func NewApiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "api",
-		Short: "API管理",
+		Short: "api(API管理)",
 		Long:  `管理 API 脚本，包括创建、测试、运行等操作`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -106,7 +106,7 @@ func createAPI(apiName, apiType string) error {
 func NewApiTestCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "test <api-file>",
-		Short: "测试API",
+		Short: "test(测试API)",
 		Long:  `测试 API 脚本`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -119,7 +119,7 @@ func NewApiTestCmd() *cobra.Command {
 func NewApiRunCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "run <api-file>",
-		Short: "运行API",
+		Short: "run(运行API)",
 		Long:  `运行 API 脚本`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

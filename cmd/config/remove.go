@@ -9,7 +9,7 @@ import (
 
 var configRemoveCmd = &cobra.Command{
 	Use:   "remove <key>",
-	Short: "删除配置项",
+	Short: "remove(删除配置项)",
 	Long:  `删除指定配置项`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

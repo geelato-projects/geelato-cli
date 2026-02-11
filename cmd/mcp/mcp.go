@@ -2,12 +2,11 @@ package mcp
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/geelato/cli/pkg/logger"
 )
 
 var McpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "MCP 平台能力管理",
+	Short: "mcp(MCP平台能力管理)",
 	Long: `MCP（Model-Context-Protocol）平台能力管理命令。
 
 MCP 功能用于管理 Geelato 平台的能力同步：

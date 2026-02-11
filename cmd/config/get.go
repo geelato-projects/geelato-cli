@@ -9,7 +9,7 @@ import (
 
 var configGetCmd = &cobra.Command{
 	Use:   "get <key>",
-	Short: "获取配置值",
+	Short: "get(获取配置值)",
 	Long:  `获取指定配置项的值`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

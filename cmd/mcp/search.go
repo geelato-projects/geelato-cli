@@ -1,13 +1,13 @@
 package mcp
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var mcpSearchCmd = &cobra.Command{
 	Use:   "search [keyword]",
-	Short: "搜索可用能力",
+	Short: "search(搜索可用能力)",
 	Long: `搜索云端平台可用的 MCP 能力。
 
 示例：

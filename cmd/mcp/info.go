@@ -1,13 +1,13 @@
 package mcp
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var mcpInfoCmd = &cobra.Command{
 	Use:   "info [name]",
-	Short: "查看能力详情",
+	Short: "info(查看能力详情)",
 	Long: `查看指定 MCP 能力的详细信息。
 
 示例：

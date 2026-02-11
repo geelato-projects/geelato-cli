@@ -12,7 +12,7 @@ import (
 
 var configEditCmd = &cobra.Command{
 	Use:   "edit",
-	Short: "编辑配置文件",
+	Short: "edit(编辑配置文件)",
 	Long:  `使用默认编辑器打开配置文件`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfgFile := viper.ConfigFileUsed()

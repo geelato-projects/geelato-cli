@@ -24,14 +24,23 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "geelato",
 	Short: "Geelato CLI - 低代码平台开发工具",
-	Long: `Geelato CLI 是一个用于低代码平台开发的命令行工具，
-支持模型管理、API开发、流程编排等功能。
+	Long: `Geelato CLI 是一个用于低代码平台开发的命令行工具。
 
-常用命令：
-  geelato init        初始化应用
-  geelato push        推送变更
-  geelato pull        拉取更新
-  geelato model init  创建模型
+== 本地创建(针对本地内容的创建) ==
+  geelato api         - API管理
+  geelato model       - 模型管理
+  geelato page        - 页面管理
+  geelato workflow    - 工作流管理
+
+== 应用操作(针对整个应用的操作) ==
+  geelato init        - 初始化应用
+  geelato clone       - 从服务器克隆应用
+  geelato pull        - 从云端拉取最新应用
+  geelato push        - 推送变更到云端
+  geelato diff        - 显示本地与云端的差异
+  geelato validate    - 验证应用配置
+  geelato config     - 配置管理
+  geelato mcp        - MCP平台能力管理
 
 使用 "geelato [command] --help" 查看命令帮助。`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -72,24 +81,22 @@ func Execute() error {
 	rootCmd.Flags().Bool("version", false, "显示版本信息")
 
 	rootCmd.AddCommand(
-		configCmd,
-		initCmd,
-		modelCmd,
 		apiCmd,
-		workflowCmd,
-		mcpCmd,
-		gitCmd,
-		syncCmd,
 		cloneCmd,
-		validateCmd,
-		pushCmd,
-		pullCmd,
+		configCmd,
 		diffCmd,
-		watchCmd,
+		initCmd,
+		mcpCmd,
+		modelCmd,
 		pageCmd,
+		pullCmd,
+		pushCmd,
+		validateCmd,
+		workflowCmd,
 	)
 
-	rootCmd.SetVersionTemplate("{{.Name}} version {{.Version}} (commit: " + commit + ", date: " + date + ")\n")
+	rootCmd.SetVersionTemplate("{{.Name}} version {{.Version}}\n")
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if ver, _ := os.LookupEnv("VERSION"); ver != "" {
 		version = ver

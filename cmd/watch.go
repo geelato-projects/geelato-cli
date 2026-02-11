@@ -7,16 +7,16 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/internal/config"
 	"github.com/geelato/cli/internal/watcher"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 func NewWatchCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "watch",
-		Short: "Watch for changes",
+		Short: "Watch for changes(监听文件变更并自动同步)",
 		Long: `Watch for file changes and auto-sync to cloud
 
 Example:

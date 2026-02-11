@@ -5,13 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var workflowListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出所有工作流",
+	Short: "list(列出所有工作流)",
 	Long: `列出当前应用下的所有工作流定义。
 
 示例：

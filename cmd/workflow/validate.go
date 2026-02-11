@@ -14,7 +14,7 @@ var validateStrict bool
 
 var workflowValidateCmd = &cobra.Command{
 	Use:   "validate [name]",
-	Short: "验证工作流定义",
+	Short: "validate(验证工作流定义)",
 	Long: `验证 BPMN 工作流定义的正确性。
 
 验证内容包括：

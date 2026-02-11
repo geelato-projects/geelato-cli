@@ -13,7 +13,7 @@ import (
 func initCmdFn() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init <app-name>",
-		Short: "Initialize a new application",
+		Short: "Initialize a new application(初始化新应用)",
 		Long: `Initialize a new Geelato application
 
 Examples:

@@ -219,7 +219,139 @@ geelato config list
 # 路径:     /Users/yourname/projects/my-first-app
 ```
 
-## 四、模型管理命令详解
+## 四、克隆应用命令详解
+
+### 4.1 clone 命令概述
+
+`clone` 命令用于从 Geelato 服务器克隆已存在的应用到本地。该命令会连接服务器下载应用数据，包括模型定义、API 接口、工作流和页面配置，并渲染成标准的本地项目结构。克隆操作是团队协作和项目迁移的重要工具，支持通过 URL 快速定位和下载目标应用。
+
+URL 格式要求：
+```
+http://{host}:{port}/{tenant}/{app-code}
+```
+
+其中：
+- `{host}`：服务器地址，如 `localhost` 或 `api.geelato.com`
+- `{port}`：端口号，如 `8080`，HTTPS 可省略端口
+- `{tenant}`：租户标识，用于隔离不同租户的数据
+- `{app-code}`：应用代码，标识具体应用
+
+### 4.2 克隆应用
+
+```bash
+# 基本用法 - 克隆应用到当前目录
+geelato clone http://localhost:8080/default/myapp
+
+# 指定输出目录
+geelato clone http://localhost:8080/default/myapp -o ./projects
+
+# 指定租户
+geelato clone http://localhost:8080/mytenant/myapp
+
+# 指定应用版本
+geelato clone http://localhost:8080/default/myapp --version latest
+```
+
+克隆过程包括以下步骤：
+1. 解析 URL 提取 tenant 和 appCode
+2. 连接 Geelato 服务器
+3. 下载应用数据
+4. 渲染模型文件（define.json, columns.json, check.json, fk.json, view.sql）
+5. 渲染页面文件
+6. 保存到本地目录
+
+### 4.3 克隆后的目录结构
+
+```bash
+克隆成功后的目录结构：
+myapp/
+├── geelato.json              # 应用配置文件（包含 repo 信息）
+├── api/                      # API 脚本目录（即使为空也会创建）
+│   └── .gitkeep
+├── meta/                     # 模型定义目录
+│   └── User/
+│       ├── User.define.json
+│       ├── User.columns.json
+│       ├── User.check.json
+│       ├── User.fk.json
+│       └── User.default.view.sql
+├── page/                     # 页面定义目录
+│   └── userListPage/
+│       ├── userListPage.define.json
+│       ├── userListPage.source.json
+│       ├── userListPage.release.json
+│       └── userListPage.preview.json
+└── workflow/                 # 工作流定义目录（即使为空也会创建）
+    └── .gitkeep
+```
+
+### 4.4 应用配置文件说明
+
+克隆成功后，会在应用根目录生成 `geelato.json` 配置文件，其中 `repo` 字段记录了克隆来源地址：
+
+```json
+{
+  "meta": {
+    "version": "1.0.0",
+    "appId": "app_myapp",
+    "name": "myapp",
+    "description": "My Application",
+    "createdAt": "2026-02-11T13:31:03+08:00"
+  },
+  "config": {
+    "api": {
+      "url": "",
+      "timeout": 30
+    },
+    "repo": {
+      "url": "http://localhost:8080/default/myapp"
+    },
+    "sync": {
+      "autoPush": false,
+      "autoPull": false
+    }
+  }
+}
+```
+
+`repo.url` 字段的作用：
+- 标识应用的克隆来源
+- 供 `push`、`pull`、`sync` 等命令解析服务器地址
+- 可以通过 `geelato config repo` 命令更新
+
+## 五、仓库配置命令详解
+
+### 5.1 config repo 命令概述
+
+`config repo` 命令用于管理应用的仓库地址（repo）。仓库地址记录了应用对应的 Geelato 服务器地址，用于后续的 `push`、`pull`、`sync` 等同步操作。
+
+```bash
+# 查看当前仓库地址
+geelato config repo
+
+# 设置仓库地址
+geelato config repo http://localhost:8080/tenant/app-code
+```
+
+### 5.2 使用场景
+
+**场景一：init 后设置**
+```bash
+# 初始化新应用
+geelato init my-new-app
+cd my-new-app
+
+# 设置仓库地址（如果是克隆自某个应用）
+geelato config repo http://localhost:8080/default/myapp
+```
+
+**场景二：更新仓库地址**
+```bash
+# 应用迁移到新的服务器
+geelato config repo http://new-server:8080/tenant/new-app-code
+```
+
+## 五、模型管理命令详解
 
 ### 4.1 模型定义概述
 

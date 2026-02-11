@@ -16,7 +16,7 @@ var deployForce bool
 
 var workflowDeployCmd = &cobra.Command{
 	Use:   "deploy [name]",
-	Short: "部署工作流",
+	Short: "deploy(部署工作流)",
 	Long: `部署工作流到云端平台。
 
 部署前会验证工作流定义，然后将工作流文件上传到云端。

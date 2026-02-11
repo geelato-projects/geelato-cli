@@ -21,7 +21,7 @@ var (
 
 var workflowCreateCmd = &cobra.Command{
 	Use:   "create [name]",
-	Short: "创建新工作流",
+	Short: "create(创建新工作流)",
 	Long: `创建一个新的 BPMN 工作流定义。
 
 工作流定义包括：

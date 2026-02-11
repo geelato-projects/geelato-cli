@@ -9,7 +9,7 @@ import (
 
 var configListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出所有配置",
+	Short: "list(列出所有配置)",
 	Long:  `列出当前配置的所有选项及其值`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := viper.ConfigFileUsed()

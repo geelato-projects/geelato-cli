@@ -1,8 +1,8 @@
 package mcp
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 
 var mcpListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出可用能力",
+	Short: "list(列出可用能力)",
 	Long: `列出本地和云端平台可用的 MCP 能力。
 
 能力分类包括：

@@ -6,7 +6,7 @@ import (
 
 var WorkflowCmd = &cobra.Command{
 	Use:   "workflow",
-	Short: "工作流管理",
+	Short: "workflow(工作流管理)",
 	Long: `工作流管理命令，用于创建和管理 BPMN 流程。
 
 工作流功能包括：

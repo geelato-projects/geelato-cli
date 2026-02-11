@@ -2,9 +2,12 @@ package sync
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
-	"github.com/spf13/cobra"
+	"github.com/geelato/cli/internal/app"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -43,7 +46,35 @@ func init() {
 func runPull() error {
 	logger.Info("从云端拉取变更...")
 
-	manager := NewManager()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	geelatoPath := filepath.Join(cwd, "geelato.json")
+	if _, err := os.Stat(geelatoPath); os.IsNotExist(err) {
+		return fmt.Errorf("not a Geelato application: geelato.json not found in %s", cwd)
+	}
+
+	// 从 geelato.json 读取 repo 配置
+	appConfig, err := app.LoadAppConfig(cwd)
+	if err != nil {
+		return fmt.Errorf("failed to load app config: %w", err)
+	}
+
+	repoURL := app.GetRepoFromConfig(appConfig)
+	if repoURL == "" {
+		return fmt.Errorf("repo URL not configured. Please run 'geelato config repo <url>' first")
+	}
+
+	_, _, apiURL, err := app.ParseRepoURL(repoURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse repo URL: %w", err)
+	}
+
+	logger.Infof("使用 API URL: %s", apiURL)
+
+	manager := NewManagerWithAPI(apiURL)
 
 	status, err := manager.GetStatus()
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
-	Short: "设置配置值",
+	Short: "set(设置配置值)",
 	Long:  `设置指定配置项的值`,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {

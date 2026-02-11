@@ -25,7 +25,7 @@ var (
 
 var cloneCmd = &cobra.Command{
 	Use:   "clone <url>",
-	Short: "从服务器克隆应用",
+	Short: "clone(从服务器克隆应用)",
 	Long: `从 Geelato 服务器克隆应用，包括模型定义、API 接口、工作流和页面配置。
 
 URL 格式：
@@ -174,7 +174,6 @@ type ViewColumnData struct {
 type PageData struct {
 	ID             string `json:"id"`
 	AppID          string `json:"appId"`
-	PageName       string `json:"pageName"`
 	Code           string `json:"code"`
 	Description    string `json:"description"`
 	Type           string `json:"type"`
@@ -193,13 +192,23 @@ type PageData struct {
 }
 
 type APIData struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Module      string `json:"module"`
-	Description string `json:"description"`
-	Content     string `json:"content"`
-	Method      string `json:"method"`
-	Path        string `json:"path"`
+	ID             string `json:"id"`
+	AppID          string `json:"appId"`
+	Code           string `json:"code"`
+	Name           string `json:"name"`
+	Module         string `json:"module"`
+	GroupName      string `json:"groupName"`
+	Description    string `json:"description"`
+	SourceContent  string `json:"sourceContent"`
+	ReleaseContent string `json:"releaseContent"`
+	Method         string `json:"method"`
+	Path           string `json:"path"`
+	ResponseType   string `json:"responseType"`
+	ResponseFormat string `json:"responseFormat"`
+	Version        int    `json:"version"`
+	EnableStatus   int    `json:"enableStatus"`
+	Anonymous      int    `json:"anonymous"`
+	Paging         int    `json:"paging"`
 }
 
 type WorkflowData struct {
@@ -256,18 +265,44 @@ func runClone(repoURL, outputDir, version string, skipExtract bool) error {
 	}
 
 	var result struct {
-		Code int         `json:"code"`
-		Data CloneResult `json:"data"`
+		Code int             `json:"code"`
+		Data json.RawMessage `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if result.Data.Format == "json" {
-		manager := NewCloneManager(appCode, repoURL)
-		if err := manager.RenderAndSave(ctx, &result.Data.Data, outputDir); err != nil {
-			return fmt.Errorf("failed to render and save: %w", err)
-		}
+	logger.Infof("Response code: %d, data length: %d", result.Code, len(result.Data))
+
+	// 解析外层结构，检查是否有 format 字段
+	var outerData struct {
+		Format string          `json:"format"`
+		Data   json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(result.Data, &outerData); err != nil {
+		return fmt.Errorf("failed to parse outer data: %w", err)
+	}
+
+	// 如果有 format 字段，说明数据被包装了一层
+	var appDataBytes []byte
+	if outerData.Format != "" && outerData.Data != nil {
+		logger.Infof("Found nested format: %s", outerData.Format)
+		appDataBytes = outerData.Data
+	} else {
+		appDataBytes = result.Data
+	}
+
+	var appData CloneResponseData
+	if err := json.Unmarshal(appDataBytes, &appData); err != nil {
+		return fmt.Errorf("failed to parse app data: %w", err)
+	}
+
+	logger.Infof("Parsed: entities=%d, pages=%d, apis=%d, workflows=%d",
+		len(appData.Entities), len(appData.Pages), len(appData.APIs), len(appData.Workflows))
+
+	manager := NewCloneManager(appCode, repoURL)
+	if err := manager.RenderAndSave(ctx, &appData, outputDir); err != nil {
+		return fmt.Errorf("failed to render and save: %w", err)
 	}
 
 	logger.Success("Clone completed successfully!")
@@ -325,6 +360,7 @@ func (m *CloneManager) RenderAndSave(ctx context.Context, data *CloneResponseDat
 		return fmt.Errorf("failed to render app config: %w", err)
 	}
 
+	logger.Infof("Processing entities: %d", len(data.Entities))
 	for _, entity := range data.Entities {
 		entityDir := filepath.Join(outputDir, "meta", entity.EntityName)
 		if err := os.MkdirAll(entityDir, 0755); err != nil {
@@ -336,34 +372,79 @@ func (m *CloneManager) RenderAndSave(ctx context.Context, data *CloneResponseDat
 		}
 	}
 
+	logger.Infof("Processing pages: %d", len(data.Pages))
+	// 确保 page 目录存在，即使数据为空
+	pageDir := filepath.Join(outputDir, "page")
+	if err := os.MkdirAll(pageDir, 0755); err != nil {
+		return fmt.Errorf("failed to create page directory: %w", err)
+	}
+
+	// 如果 page 数据为空，创建 .gitkeep 占位文件
+	if len(data.Pages) == 0 {
+		gitkeepPath := filepath.Join(pageDir, ".gitkeep")
+		if _, err := os.Stat(gitkeepPath); os.IsNotExist(err) {
+			os.WriteFile(gitkeepPath, []byte("# Keep this directory\n"), 0644)
+		}
+	}
+
 	for _, page := range data.Pages {
-		pageDir := filepath.Join(outputDir, "page", page.PageName)
-		if err := os.MkdirAll(pageDir, 0755); err != nil {
-			return fmt.Errorf("failed to create page directory: %w", err)
+		// 使用 code 作为目录名，如果为空则使用 id
+		pageDirName := page.Code
+		if pageDirName == "" {
+			pageDirName = page.ID
+		}
+		pageSubDir := filepath.Join(outputDir, "page", pageDirName)
+		if err := os.MkdirAll(pageSubDir, 0755); err != nil {
+			logger.Errorf("Failed to create page dir %s: %v", pageSubDir, err)
+			continue
 		}
 
-		if err := m.renderPage(page, pageDir); err != nil {
-			return fmt.Errorf("failed to render page %s: %w", page.PageName, err)
+		if err := m.renderPage(page, pageSubDir); err != nil {
+			logger.Errorf("Failed to render page %s: %v", page.Code, err)
+			continue
+		}
+	}
+
+	logger.Infof("Processing APIs: %d", len(data.APIs))
+	// 确保 api 目录存在，即使数据为空
+	apiDir := filepath.Join(outputDir, "api")
+	if err := os.MkdirAll(apiDir, 0755); err != nil {
+		return fmt.Errorf("failed to create api directory: %w", err)
+	}
+
+	// 如果 api 数据为空，创建 .gitkeep 占位文件
+	if len(data.APIs) == 0 {
+		gitkeepPath := filepath.Join(apiDir, ".gitkeep")
+		if _, err := os.Stat(gitkeepPath); os.IsNotExist(err) {
+			os.WriteFile(gitkeepPath, []byte("# Keep this directory\n"), 0644)
 		}
 	}
 
 	for _, api := range data.APIs {
-		apiDir := filepath.Join(outputDir, "api", api.Module)
-		if err := os.MkdirAll(apiDir, 0755); err != nil {
-			return fmt.Errorf("failed to create api directory: %w", err)
+		// 使用 code 作为目录名，如果为空则使用 id
+		apiDirName := api.Code
+		if apiDirName == "" {
+			apiDirName = api.ID
+		}
+		apiSubDir := filepath.Join(outputDir, "api", apiDirName)
+		if err := os.MkdirAll(apiSubDir, 0755); err != nil {
+			logger.Errorf("Failed to create api dir %s: %v", apiSubDir, err)
+			continue
 		}
 
-		if err := m.renderAPI(api, apiDir); err != nil {
-			return fmt.Errorf("failed to render api %s: %w", api.Name, err)
+		if err := m.renderAPI(api, apiSubDir); err != nil {
+			logger.Errorf("Failed to render api %s: %v", api.Code, err)
+			continue
 		}
 	}
 
-	for _, wf := range data.Workflows {
-		wfDir := filepath.Join(outputDir, "workflow")
-		if err := os.MkdirAll(wfDir, 0755); err != nil {
-			return fmt.Errorf("failed to create workflow directory: %w", err)
-		}
+	logger.Infof("Processing workflows: %d", len(data.Workflows))
+	wfDir := filepath.Join(outputDir, "workflow")
+	if err := os.MkdirAll(wfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create workflow directory: %w", err)
+	}
 
+	for _, wf := range data.Workflows {
 		if err := m.renderWorkflow(wf, wfDir); err != nil {
 			return fmt.Errorf("failed to render workflow %s: %w", wf.Name, err)
 		}
@@ -381,7 +462,19 @@ func (m *CloneManager) renderAppConfig(outputDir string, data *CloneResponseData
 			"version": data.Version,
 			"tenant":  data.Tenant,
 		},
-		"repo": m.RepoURL,
+		"config": map[string]interface{}{
+			"api": map[string]interface{}{
+				"url":     "",
+				"timeout": 30,
+			},
+			"repo": map[string]interface{}{
+				"url": m.RepoURL,
+			},
+			"sync": map[string]interface{}{
+				"autoPush": false,
+				"autoPull": false,
+			},
+		},
 	}
 
 	content, _ := json.MarshalIndent(config, "", "  ")
@@ -471,6 +564,12 @@ func (m *CloneManager) renderViewSQL(view ViewData) string {
 }
 
 func (m *CloneManager) renderPage(page PageData, pageDir string) error {
+	// 使用 code 作为文件名前缀，如果为空则使用 id
+	filePrefix := page.Code
+	if filePrefix == "" {
+		filePrefix = page.ID
+	}
+
 	define := map[string]interface{}{
 		"meta": map[string]interface{}{
 			"version":   "1.0.0",
@@ -494,24 +593,24 @@ func (m *CloneManager) renderPage(page PageData, pageDir string) error {
 	}
 
 	content, _ := json.MarshalIndent(define, "", "  ")
-	if err := os.WriteFile(filepath.Join(pageDir, page.PageName+".define.json"), content, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(pageDir, filePrefix+".define.json"), content, 0644); err != nil {
 		return err
 	}
 
 	if page.SourceContent != "" {
-		if err := os.WriteFile(filepath.Join(pageDir, page.PageName+".source.json"), []byte(page.SourceContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(pageDir, filePrefix+".source.json"), []byte(page.SourceContent), 0644); err != nil {
 			return err
 		}
 	}
 
 	if page.ReleaseContent != "" {
-		if err := os.WriteFile(filepath.Join(pageDir, page.PageName+".release.json"), []byte(page.ReleaseContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(pageDir, filePrefix+".release.json"), []byte(page.ReleaseContent), 0644); err != nil {
 			return err
 		}
 	}
 
 	if page.PreviewContent != "" {
-		if err := os.WriteFile(filepath.Join(pageDir, page.PageName+".preview.json"), []byte(page.PreviewContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(pageDir, filePrefix+".preview.json"), []byte(page.PreviewContent), 0644); err != nil {
 			return err
 		}
 	}
@@ -520,13 +619,58 @@ func (m *CloneManager) renderPage(page PageData, pageDir string) error {
 }
 
 func (m *CloneManager) renderAPI(api APIData, apiDir string) error {
-	content := fmt.Sprintf(`// API: %s
-// Module: %s
-// Description: %s
+	filePrefix := api.Code
+	if filePrefix == "" {
+		filePrefix = api.ID
+	}
+
+	define := map[string]interface{}{
+		"meta": map[string]interface{}{
+			"version":   "1.0.0",
+			"updatedAt": time.Now().Format(time.RFC3339),
+		},
+		"api": map[string]interface{}{
+			"id":             api.ID,
+			"appId":          api.AppID,
+			"code":           api.Code,
+			"name":           api.Name,
+			"module":         api.Module,
+			"groupName":      api.GroupName,
+			"description":    api.Description,
+			"method":         api.Method,
+			"path":           api.Path,
+			"responseType":   api.ResponseType,
+			"responseFormat": api.ResponseFormat,
+			"version":        api.Version,
+			"enableStatus":   api.EnableStatus,
+			"anonymous":      api.Anonymous,
+			"paging":         api.Paging,
+		},
+	}
+
+	content, _ := json.MarshalIndent(define, "", "  ")
+	if err := os.WriteFile(filepath.Join(apiDir, filePrefix+".define.json"), content, 0644); err != nil {
+		return err
+	}
+
+	if api.ReleaseContent != "" {
+		jsContent := fmt.Sprintf(`/**
+ * @api
+ * @name %s
+ * @path %s
+ * @method %s
+ * @description %s
+ * @version %d
+ */
 
 %s
-`, api.Name, api.Module, api.Description, api.Content)
-	return os.WriteFile(filepath.Join(apiDir, api.Name+".api.js"), []byte(content), 0644)
+`, api.Name, api.Path, api.Method, api.Description, api.Version, api.ReleaseContent)
+		if err := os.WriteFile(filepath.Join(apiDir, filePrefix+".api.js"), []byte(jsContent), 0644); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m *CloneManager) renderWorkflow(wf WorkflowData, wfDir string) error {

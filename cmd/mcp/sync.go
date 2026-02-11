@@ -1,15 +1,15 @@
 package mcp
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var syncDirection string
 
 var mcpSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "同步能力",
+	Short: "sync(同步能力)",
 	Long: `同步 MCP 能力到云端平台或从云端拉取。
 
 同步方向：

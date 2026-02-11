@@ -4,16 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/internal/app"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 func NewValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate",
-		Short: "Validate application",
-		Long: `Validate the current application structure
+		Short: "Validate application(验证应用配置)",
+		Long: `Validate the current Geelato application configuration.
 
 This command checks:
 - geelato.json configuration

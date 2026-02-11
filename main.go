@@ -14,7 +14,7 @@ var (
 )
 
 func main() {
-	logger.Infof("Geelato CLI %s (commit: %s, date: %s)", version, commit, date)
+	logger.Infof("Geelato CLI version %s", version)
 	if err := cmd.Execute(); err != nil {
 		logger.Errorf("执行失败: %v", err)
 		os.Exit(1)

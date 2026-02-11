@@ -4,16 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/internal/config"
 	"github.com/geelato/cli/internal/sync"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 func NewDiffCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "diff",
-		Short: "Show differences",
+		Short: "Show differences(显示本地与云端的差异)",
 		Long: `Show differences between local and cloud
 
 Example:

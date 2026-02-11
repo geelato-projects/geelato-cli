@@ -16,7 +16,7 @@ import (
 func NewPageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "page",
-		Short: "页面管理",
+		Short: "page(页面管理)",
 		Long:  `管理应用页面配置，包括创建页面、编辑源码、发布等操作`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -35,7 +35,7 @@ var (
 
 var pageCreateCmd = &cobra.Command{
 	Use:   "create <page-name>",
-	Short: "创建页面",
+	Short: "create(创建页面)",
 	Long: `创建一个新的页面配置
 
 示例:

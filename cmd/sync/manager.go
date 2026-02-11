@@ -26,22 +26,30 @@ type Change struct {
 type ChangeType string
 
 const (
-	ChangeTypeAdded   ChangeType = "added"
+	ChangeTypeAdded    ChangeType = "added"
 	ChangeTypeModified ChangeType = "modified"
-	ChangeTypeDeleted ChangeType = "deleted"
+	ChangeTypeDeleted  ChangeType = "deleted"
 )
 
 type Manager struct {
-	syncDir     string
-	stateFile   string
+	syncDir        string
+	stateFile      string
 	platformClient *platform.Client
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		syncDir:       ".geelato",
-		stateFile:     filepath.Join(".geelato", "sync-state.json"),
+		syncDir:        ".geelato",
+		stateFile:      filepath.Join(".geelato", "sync-state.json"),
 		platformClient: platform.NewClient(),
+	}
+}
+
+func NewManagerWithAPI(apiURL string) *Manager {
+	return &Manager{
+		syncDir:        ".geelato",
+		stateFile:      filepath.Join(".geelato", "sync-state.json"),
+		platformClient: platform.NewClientWithURL(apiURL),
 	}
 }
 
@@ -150,10 +158,10 @@ func (m *Manager) GetStatus() (*SyncStatusView, error) {
 	return &SyncStatusView{
 		LocalVersion:  syncState.Version,
 		RemoteVersion: "latest",
-		AheadBy:      ahead,
+		AheadBy:       ahead,
 		BehindBy:      behind,
 		HasConflict:   false,
-		LastSyncTime: syncState.LastSyncAt,
+		LastSyncTime:  syncState.LastSyncAt,
 	}, nil
 }
 
@@ -243,18 +251,18 @@ func (m *Manager) getAppID() string {
 }
 
 type SyncState struct {
-	Version    string         `json:"version"`
-	LastSyncAt string         `json:"lastSyncAt"`
+	Version    string            `json:"version"`
+	LastSyncAt string            `json:"lastSyncAt"`
 	Files      map[string]string `json:"files"`
 }
 
 type SyncStatusView struct {
 	LocalVersion  string
 	RemoteVersion string
-	AheadBy      int
-	BehindBy     int
-	HasConflict  bool
-	LastSyncTime string
+	AheadBy       int
+	BehindBy      int
+	HasConflict   bool
+	LastSyncTime  string
 }
 
 type Conflict struct {
