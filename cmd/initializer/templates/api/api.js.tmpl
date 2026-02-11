@@ -1,0 +1,33 @@
+/**
+ * @api
+ * @name {{.APIName}}
+ * @path /api/{{.APIPath}}
+ * @method POST
+ * @description API description
+ * @version 1.0.0
+ */
+
+// @param
+// name: param1
+// type: String
+// required: true
+// description: Parameter 1
+
+// @return
+// type: Object
+// description: Response data
+
+(function() {
+    // Get request parameters
+    var param1 = $params.param1;
+
+    // TODO: Add your business logic here
+
+    return {
+        code: 200,
+        message: "success",
+        data: {
+            result: true
+        }
+    };
+})();

@@ -5,11 +5,11 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/geelato/cli/internal/config"
 	gerrors "github.com/geelato/cli/pkg/errors"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -52,7 +52,7 @@ var rootCmd = &cobra.Command{
 		logger.Debugf("命令: %s %v", cmd.Name(), args)
 		return nil
 	},
-	SilenceUsage: true,
+	SilenceUsage:  true,
 	SilenceErrors: true,
 }
 
@@ -86,6 +86,7 @@ func Execute() error {
 		pullCmd,
 		diffCmd,
 		watchCmd,
+		pageCmd,
 	)
 
 	rootCmd.SetVersionTemplate("{{.Name}} version {{.Version}} (commit: " + commit + ", date: " + date + ")\n")

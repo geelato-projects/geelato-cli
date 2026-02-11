@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/geelato/cli/cmd/initializer"
 	"github.com/geelato/cli/pkg/logger"
 	"github.com/geelato/cli/pkg/prompt"
 	"github.com/spf13/cobra"
@@ -96,254 +97,34 @@ func createAPI(apiName, apiType string) error {
 		return fmt.Errorf("failed to create API directory: %w", err)
 	}
 
-	var content string
-	switch strings.ToLower(apiType) {
-	case "python", "py":
-		content = generatePythonAPI(apiName)
-	case "go":
-		content = generateGoAPI(apiName)
-	default:
-		content = generateJSAPI(apiName)
-	}
-
 	fileName := fmt.Sprintf("%s.api.%s", apiName, apiType)
 	filePath := filepath.Join(apiDir, fileName)
 
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to create API file: %w", err)
-	}
-
-	return nil
-}
-
-func generateJSAPI(apiName string) string {
-	return fmt.Sprintf(`/**
- * @api
- * @name %s
- * @path /api/%s
- * @method POST
- * @description API description
- * @version 1.0.0
- */
-
-// @param
-// name: param1
-// type: String
-// required: true
-// description: Parameter 1
-
-// @return
-// type: Object
-// description: Response data
-
-(function() {
-    // Get request parameters
-    var param1 = $params.param1;
-
-    // TODO: Add your business logic here
-
-    return {
-        code: 200,
-        message: "success",
-        data: {
-            result: true
-        }
-    };
-})();
-`, apiName, strings.ToLower(apiName))
-}
-
-func generatePythonAPI(apiName string) string {
-	return fmt.Sprintf(`# -*- coding: utf-8 -*-
-"""
-@api
-@name %s
-@path /api/%s
-@method POST
-@description API description
-@version 1.0.0
-"""
-
-# @param
-# name: param1
-# type: String
-# required: true
-# description: Parameter 1
-
-# @return
-# type: Object
-# description: Response data
-
-
-def main(params):
-    param1 = params.get('param1')
-
-    # TODO: Add your business logic here
-
-    return {
-        'code': 200,
-        'message': 'success',
-        'data': {
-            'result': True
-        }
-    }
-`, apiName, strings.ToLower(apiName))
-}
-
-func generateGoAPI(apiName string) string {
-	return fmt.Sprintf(`package main
-
-/**
- * @api
- * @name %s
- * @path /api/%s
- * @method POST
- * @description API description
- * @version 1.0.0
- */
-
-import (
-    "github.com/geelato/gl"
-)
-
-func main() {
-    // Get request parameters
-    param1 := gl.GetParam("param1")
-
-    // TODO: Add your business logic here
-
-    gl.ReturnJSON(map[string]interface{}{
-        "code":    200,
-        "message": "success",
-        "data": map[string]interface{}{
-            "result": true,
-        },
-    })
-}
-`, apiName, strings.ToLower(apiName))
+	return initializer.CreateAPIFile(filePath, apiName, apiType)
 }
 
 func NewApiTestCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "test <api-name>",
+	return &cobra.Command{
+		Use:   "test <api-file>",
 		Short: "测试API",
-		Long: `本地测试 API 脚本
-
-示例:
-  geelato api test getUserList
-  geelato api test getUserList --data '{"id": 1}'
-  geelato api test saveUser --method POST --data '{"name": "test"}'`,
-		Args: cobra.MinimumNArgs(1),
+		Long:  `测试 API 脚本`,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiName := args[0]
-			data, _ := cmd.Flags().GetString("data")
-			method, _ := cmd.Flags().GetString("method")
-			return runApiTest(apiName, data, method)
+			logger.Info("API test functionality not yet implemented")
+			return nil
 		},
 	}
-
-	cmd.Flags().String("data", "{}", "请求数据 (JSON格式)")
-	cmd.Flags().String("method", "POST", "HTTP方法")
-	cmd.Flags().String("url", "", "覆盖请求URL")
-
-	return cmd
-}
-
-func runApiTest(apiName, data, method string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	apiPath := filepath.Join(cwd, "api", apiName+".api.js")
-	if _, err := os.Stat(apiPath); os.IsNotExist(err) {
-		return fmt.Errorf("API '%s' does not exist", apiName)
-	}
-
-	logger.Info("Testing API: %s", apiName)
-	logger.Infof("  Method: %s", method)
-	logger.Infof("  Data: %s", data)
-
-	content, err := os.ReadFile(apiPath)
-	if err != nil {
-		return fmt.Errorf("failed to read API file: %w", err)
-	}
-
-	logger.Info("")
-	logger.Info("API content preview:")
-	logger.Info("-------------------")
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		if i >= 20 {
-			logger.Info("  ...")
-			break
-		}
-		logger.Info("  %s", line)
-	}
-
-	logger.Info("")
-	logger.Warn("API test requires running Geelato server")
-	logger.Info("Please use 'geelato push' to deploy and test on server")
-
-	return nil
 }
 
 func NewApiRunCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "run <api-name>",
+	return &cobra.Command{
+		Use:   "run <api-file>",
 		Short: "运行API",
-		Long: `运行 API 脚本（本地调试）
-
-示例:
-  geelato api run getUserList
-  geelato api run saveUser --data '{"name": "test"}'`,
-		Args: cobra.MinimumNArgs(1),
+		Long:  `运行 API 脚本`,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiName := args[0]
-			data, _ := cmd.Flags().GetString("data")
-			return runApiRun(apiName, data)
+			logger.Info("API run functionality not yet implemented")
+			return nil
 		},
 	}
-
-	cmd.Flags().String("data", "{}", "请求数据 (JSON格式)")
-
-	return cmd
-}
-
-func runApiRun(apiName, data string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	apiPath := filepath.Join(cwd, "api", apiName+".api.js")
-	if _, err := os.Stat(apiPath); os.IsNotExist(err) {
-		return fmt.Errorf("API '%s' does not exist", apiName)
-	}
-
-	logger.Info("Running API: %s", apiName)
-	logger.Infof("  Data: %s", data)
-
-	content, err := os.ReadFile(apiPath)
-	if err != nil {
-		return fmt.Errorf("failed to read API file: %w", err)
-	}
-
-	logger.Info("")
-	logger.Info("API script:")
-	logger.Info("-----------")
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		if i >= 30 {
-			logger.Info("  ...")
-			break
-		}
-		logger.Info("  %s", line)
-	}
-
-	logger.Info("")
-	logger.Warn("Local API execution requires Node.js runtime")
-	logger.Info("For full testing, please deploy to Geelato server")
-
-	return nil
 }

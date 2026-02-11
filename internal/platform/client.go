@@ -16,10 +16,10 @@ import (
 )
 
 type Client struct {
-	baseURL   string
-	apiKey    string
-	client    *http.Client
-	headers   map[string]string
+	baseURL string
+	apiKey  string
+	client  *http.Client
+	headers map[string]string
 }
 
 type RequestOptions struct {
@@ -39,12 +39,12 @@ type Response struct {
 }
 
 type UploadRequest struct {
-	AppID     string
-	Version   string
-	Branch    string
-	Message   string
-	Author    string
-	Files     []FileEntry
+	AppID   string
+	Version string
+	Branch  string
+	Message string
+	Author  string
+	Files   []FileEntry
 }
 
 type FileEntry struct {
@@ -85,6 +85,21 @@ func NewClientWithConfig(cfg *config.Config) *Client {
 		apiKey:  cfg.API.Key,
 		client: &http.Client{
 			Timeout: time.Duration(cfg.API.Timeout) * time.Second,
+		},
+		headers: make(map[string]string),
+	}
+}
+
+func NewClientWithURL(apiURL string) *Client {
+	timeout := 30
+	if cfg := config.Get(); cfg != nil {
+		timeout = cfg.API.Timeout
+	}
+	return &Client{
+		baseURL: apiURL,
+		apiKey:  "",
+		client: &http.Client{
+			Timeout: time.Duration(timeout) * time.Second,
 		},
 		headers: make(map[string]string),
 	}
@@ -324,4 +339,201 @@ func (c *Client) Ping(ctx context.Context) error {
 		Timeout: 10 * time.Second,
 	})
 	return err
+}
+
+type CloneRequest struct {
+	AppCode string `json:"appCode"`
+	Tenant  string `json:"tenant"`
+	Version string `json:"version"`
+}
+
+type CloneResponse struct {
+	Format string            `json:"format"`
+	Data   CloneResponseData `json:"data"`
+}
+
+type CloneResponseData struct {
+	AppID     string         `json:"appId"`
+	AppCode   string         `json:"appCode"`
+	AppName   string         `json:"name"`
+	Version   string         `json:"version"`
+	Tenant    string         `json:"tenant"`
+	Entities  []EntityData   `json:"entities"`
+	Pages     []PageData     `json:"pages"`
+	APIs      []APIData      `json:"apis"`
+	Workflows []WorkflowData `json:"workflows"`
+}
+
+type EntityData struct {
+	EntityName  string                 `json:"entityName"`
+	TableName   string                 `json:"tableName"`
+	TableID     string                 `json:"tableId"`
+	Meta        map[string]interface{} `json:"meta"`
+	Define      map[string]interface{} `json:"define"`
+	Columns     []ColumnData           `json:"columns"`
+	Checks      []CheckData            `json:"checks"`
+	ForeignKeys []ForeignKeyData       `json:"foreignKeys"`
+	Views       []ViewData             `json:"views"`
+}
+
+type ColumnData struct {
+	ID                     string `json:"id"`
+	AppID                  string `json:"appId"`
+	TableID                string `json:"tableId"`
+	FieldName              string `json:"fieldName"`
+	ColumnName             string `json:"columnName"`
+	ColumnType             string `json:"columnType"`
+	DataType               string `json:"dataType"`
+	CharacterMaxinumLength int    `json:"characterMaxinumLength"`
+	DatetimePrecision      string `json:"datetimePrecision"`
+	OrdinalPosition        int    `json:"ordinalPosition"`
+	IsNullable             bool   `json:"isNullable"`
+	IsUnique               bool   `json:"isUnique"`
+	ColumnDefault          string `json:"columnDefault"`
+	Description            string `json:"description"`
+	ColumnComment          string `json:"columnComment"`
+	Title                  string `json:"title"`
+	ColumnKey              string `json:"columnKey"`
+	NumericPrecision       int    `json:"numericPrecision"`
+	NumericScale           int    `json:"numericScale"`
+	EnableStatus           int    `json:"enableStatus"`
+	Synced                 int    `json:"synced"`
+	DelStatus              int    `json:"delStatus"`
+	SeqNo                  int    `json:"seqNo"`
+	Drawed                 int    `json:"drawed"`
+}
+
+type CheckData struct {
+	ID           string `json:"id"`
+	AppID        string `json:"appId"`
+	TableID      string `json:"tableId"`
+	TableName    string `json:"tableName"`
+	ColumnID     string `json:"columnId"`
+	ColumnName   string `json:"columnName"`
+	Code         string `json:"code"`
+	Title        string `json:"title"`
+	Type         string `json:"type"`
+	CheckClause  string `json:"checkClause"`
+	Description  string `json:"description"`
+	EnableStatus int    `json:"enableStatus"`
+	Synced       int    `json:"synced"`
+	DelStatus    int    `json:"delStatus"`
+	SeqNo        int    `json:"seqNo"`
+}
+
+type ForeignKeyData struct {
+	ID              string `json:"id"`
+	AppID           string `json:"appId"`
+	MainTableID     string `json:"mainTableId"`
+	MainTable       string `json:"mainTable"`
+	MainTableCol    string `json:"mainTableCol"`
+	ForeignTableID  string `json:"foreignTableId"`
+	ForeignTable    string `json:"foreignTable"`
+	ForeignTableCol string `json:"foreignTableCol"`
+	DeleteAction    string `json:"deleteAction"`
+	UpdateAction    string `json:"updateAction"`
+	Description     string `json:"description"`
+	EnableStatus    int    `json:"enableStatus"`
+	DelStatus       int    `json:"delStatus"`
+	SeqNo           int    `json:"seqNo"`
+}
+
+type ViewData struct {
+	ID            string           `json:"id"`
+	AppID         string           `json:"appId"`
+	ConnectID     string           `json:"connectId"`
+	ViewName      string           `json:"viewName"`
+	ViewType      string           `json:"viewType"`
+	EntityName    string           `json:"entityName"`
+	TableName     string           `json:"tableName"`
+	Description   string           `json:"description"`
+	Title         string           `json:"title"`
+	ViewConstruct string           `json:"viewConstruct"`
+	ViewColumns   []ViewColumnData `json:"viewColumns"`
+	EnableStatus  int              `json:"enableStatus"`
+	Linked        int              `json:"linked"`
+	DelStatus     int              `json:"delStatus"`
+	SeqNo         int              `json:"seqNo"`
+	OrderBy       string           `json:"orderBy"`
+}
+
+type ViewColumnData struct {
+	ColumnName string `json:"columnName"`
+	Alias      string `json:"alias"`
+}
+
+type PageData struct {
+	ID             string `json:"id"`
+	AppID          string `json:"appId"`
+	PageName       string `json:"pageName"`
+	Code           string `json:"code"`
+	Description    string `json:"description"`
+	Type           string `json:"type"`
+	Title          string `json:"title"`
+	SourceContent  string `json:"sourceContent"`
+	ReleaseContent string `json:"releaseContent"`
+	PreviewContent string `json:"previewContent"`
+	ExtendID       string `json:"extendId"`
+	CheckStatus    string `json:"checkStatus"`
+	CheckUserID    string `json:"checkUserId"`
+	CheckUserName  string `json:"checkUserName"`
+	CheckAt        string `json:"checkAt"`
+	Version        int    `json:"version"`
+	SeqNo          int    `json:"seqNo"`
+	CreatedAt      string `json:"createdAt"`
+}
+
+type APIData struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Module      string `json:"module"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+}
+
+type WorkflowData struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	FileName   string `json:"fileName"`
+	Category   string `json:"category"`
+	Definition string `json:"definition"`
+}
+
+func (c *Client) CloneApp(ctx context.Context, req *CloneRequest) (*CloneResponse, error) {
+	body := map[string]interface{}{
+		"appCode": req.AppCode,
+		"tenant":  req.Tenant,
+		"version": req.Version,
+	}
+
+	resp, err := c.Request(ctx, RequestOptions{
+		Method: http.MethodPost,
+		Path:   "/api/cli/app/clone",
+		Body:   body,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result CloneResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *Client) DownloadAppPackageBytes(ctx context.Context, appID, version string) ([]byte, error) {
+	path := fmt.Sprintf("/api/cli/app/download?appId=%s&version=%s", appID, version)
+	resp, err := c.Request(ctx, RequestOptions{
+		Method: http.MethodGet,
+		Path:   path,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }

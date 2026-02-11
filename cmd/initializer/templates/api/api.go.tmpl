@@ -1,0 +1,43 @@
+package main
+
+/**
+ * @api
+ * @name {{.APIName}}
+ * @path /api/{{.APIPath}}
+ * @method POST
+ * @description API description
+ * @version 1.0.0
+ */
+
+// @param
+// name: param1
+// type: String
+// required: true
+// description: Parameter 1
+
+// @return
+// type: Object
+// description: Response data
+
+import (
+	"context"
+	"fmt"
+)
+
+func main(params map[string]interface{}) (map[string]interface{}, error) {
+	param1, ok := params["param1"].(string)
+	if !ok {
+		param1 = ""
+	}
+
+	// TODO: Add your business logic here
+	_ = param1
+
+	return map[string]interface{}{
+		"code":    200,
+		"message": "success",
+		"data": map[string]interface{}{
+			"result": true,
+		},
+	}, nil
+}

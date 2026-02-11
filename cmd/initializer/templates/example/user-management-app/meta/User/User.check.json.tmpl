@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "tableId": "tbl_user_001"
+  },
+  "checks": [
+    {
+      "id": "chk_user_status",
+      "title": "用户状态检查",
+      "code": "CHK_USER_STATUS",
+      "tableSchema": "platform",
+      "connectId": null,
+      "tableId": "tbl_user_001",
+      "tableName": "platform_user",
+      "columnId": null,
+      "columnName": null,
+      "type": "check",
+      "checkClause": "status IN (0, 1)",
+      "description": "用户状态只能是0或1",
+      "enableStatus": 1,
+      "appId": null,
+      "synced": 0,
+      "deptId": null,
+      "buId": null,
+      "tenantCode": null,
+      "delStatus": 0
+    },
+    {
+      "id": "chk_user_del_status",
+      "title": "删除状态检查",
+      "code": "CHK_USER_DEL_STATUS",
+      "tableSchema": "platform",
+      "connectId": null,
+      "tableId": "tbl_user_001",
+      "tableName": "platform_user",
+      "columnId": null,
+      "columnName": null,
+      "type": "check",
+      "checkClause": "del_status IN (0, 1)",
+      "description": "删除状态只能是0或1",
+      "enableStatus": 1,
+      "appId": null,
+      "synced": 0,
+      "deptId": null,
+      "buId": null,
+      "tenantCode": null,
+      "delStatus": 0
+    }
+  ]
+}

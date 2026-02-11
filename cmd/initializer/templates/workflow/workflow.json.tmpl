@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "name": "{{.WorkflowName}}",
+    "description": "{{.WorkflowDesc}}",
+    "version": "1.0",
+    "createdAt": "{{.CreatedAt}}",
+    "updatedAt": "{{.UpdatedAt}}"
+  },
+  "startEvents": [
+    {
+      "id": "start_1",
+      "name": "开始"
+    }
+  ],
+  "endEvents": [
+    {
+      "id": "end_1",
+      "name": "结束"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1",
+      "name": "处理任务",
+      "type": "serviceTask"
+    }
+  ],
+  "sequenceFlows": [
+    {
+      "id": "flow_1",
+      "sourceRef": "start_1",
+      "targetRef": "task_1"
+    },
+    {
+      "id": "flow_2",
+      "sourceRef": "task_1",
+      "targetRef": "end_1"
+    }
+  ]
+}

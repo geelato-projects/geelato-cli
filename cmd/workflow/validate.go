@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/geelato/cli/pkg/logger"
+	"github.com/spf13/cobra"
 )
 
 var validateStrict bool
@@ -33,23 +33,6 @@ var workflowValidateCmd = &cobra.Command{
 
 func init() {
 	workflowValidateCmd.Flags().BoolVar(&validateStrict, "strict", false, "严格模式")
-}
-
-type ValidationResult struct {
-	Valid    bool
-	Errors   []ValidationError
-	Warnings []ValidationWarning
-}
-
-type ValidationError struct {
-	Element  string
-	Property string
-	Message  string
-}
-
-type ValidationWarning struct {
-	Element string
-	Message string
 }
 
 func runValidate(args []string) error {

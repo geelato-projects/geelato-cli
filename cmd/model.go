@@ -1,16 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/geelato/cli/internal/model"
+	"github.com/geelato/cli/cmd/initializer"
 	"github.com/geelato/cli/pkg/logger"
 	"github.com/geelato/cli/pkg/prompt"
+	"github.com/spf13/cobra"
 )
 
 func NewModelCmd() *cobra.Command {
@@ -83,110 +84,43 @@ func createModel(modelName string) error {
 		return fmt.Errorf("current directory is not a valid Geelato application")
 	}
 
+	// 读取 geelato.json 获取 appId
+	appId, err := getAppIdFromGeelatoJSON(geelatoPath)
+	if err != nil {
+		return fmt.Errorf("failed to read appId from geelato.json: %w", err)
+	}
+
 	entityName := strings.Title(modelName)
 	tableName := "platform_" + strings.ToLower(modelName)
 	now := time.Now().Format(time.RFC3339)
-	tableId := "tbl_" + strings.ToLower(entityName)
+	tableID := "tbl_" + strings.ToLower(entityName)
 
 	entityDir := filepath.Join(cwd, "meta", entityName)
 	if err := os.MkdirAll(entityDir, 0755); err != nil {
 		return fmt.Errorf("failed to create entity directory: %w", err)
 	}
 
-	defineContent := fmt.Sprintf(`{
-  "meta": {
-    "version": "1.0.0",
-    "createdAt": "%s"
-  },
-  "table": {
-    "id": "%s",
-    "title": "%s",
-    "entityName": "%s",
-    "tableName": "%s",
-    "tableSchema": "platform",
-    "tableType": "entity",
-    "tableComment": "%s entity"
-  }
-}`, now, tableId, modelName, entityName, tableName, entityName)
+	return initializer.CreateModelFiles(entityDir, entityName, tableName, tableID, now, appId)
+}
 
-	definePath := filepath.Join(entityDir, entityName+".define.json")
-	if err := os.WriteFile(definePath, []byte(defineContent), 0644); err != nil {
-		return fmt.Errorf("failed to create define file: %w", err)
+// getAppIdFromGeelatoJSON 从 geelato.json 文件中读取 appId
+func getAppIdFromGeelatoJSON(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read geelato.json: %w", err)
 	}
 
-	columnsContent := fmt.Sprintf(`{
-  "meta": {
-    "version": "1.0.0",
-    "tableId": "%s"
-  },
-  "columns": [
-    {
-      "id": "col_%s_id",
-      "columnName": "id",
-      "dataType": "bigint",
-      "isPrimaryKey": true,
-      "isNullable": false,
-      "comment": "Primary key"
-    },
-    {
-      "id": "col_%s_created_at",
-      "columnName": "created_at",
-      "dataType": "datetime",
-      "isNullable": false,
-      "defaultValue": "CURRENT_TIMESTAMP",
-      "comment": "Creation time"
-    },
-    {
-      "id": "col_%s_updated_at",
-      "columnName": "updated_at",
-      "dataType": "datetime",
-      "isNullable": false,
-      "defaultValue": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-      "comment": "Update time"
-    }
-  ]
-}`, tableId, strings.ToLower(entityName), strings.ToLower(entityName), strings.ToLower(entityName))
-
-	columnsPath := filepath.Join(entityDir, entityName+".columns.json")
-	if err := os.WriteFile(columnsPath, []byte(columnsContent), 0644); err != nil {
-		return fmt.Errorf("failed to create columns file: %w", err)
+	var config struct {
+		Meta struct {
+			AppID string `json:"appId"`
+		} `json:"meta"`
 	}
 
-	checkContent := fmt.Sprintf(`{
-  "meta": {
-    "version": "1.0.0",
-    "tableId": "%s"
-  },
-  "checks": []
-}`, tableId)
-
-	checkPath := filepath.Join(entityDir, entityName+".check.json")
-	if err := os.WriteFile(checkPath, []byte(checkContent), 0644); err != nil {
-		return fmt.Errorf("failed to create check file: %w", err)
+	if err := json.Unmarshal(data, &config); err != nil {
+		return "", fmt.Errorf("failed to parse geelato.json: %w", err)
 	}
 
-	fkContent := fmt.Sprintf(`{
-  "meta": {
-    "version": "1.0.0",
-    "tableId": "%s"
-  },
-  "foreignKeys": []
-}`, tableId)
-
-	fkPath := filepath.Join(entityDir, entityName+".fk.json")
-	if err := os.WriteFile(fkPath, []byte(fkContent), 0644); err != nil {
-		return fmt.Errorf("failed to create fk file: %w", err)
-	}
-
-	viewContent := fmt.Sprintf(`-- @meta
-SELECT * FROM %s WHERE deleted_at IS NULL`, tableName)
-
-	viewPath := filepath.Join(entityDir, entityName+".default.view.sql")
-	if err := os.WriteFile(viewPath, []byte(viewContent), 0644); err != nil {
-		return fmt.Errorf("failed to create view file: %w", err)
-	}
-
-	return nil
+	return config.Meta.AppID, nil
 }
 
 func NewModelListCmd() *cobra.Command {
@@ -297,73 +231,167 @@ func runAddField(entityName, fieldSpec string) error {
 
 	entityDir := filepath.Join(cwd, "meta", entityName)
 	if _, err := os.Stat(entityDir); os.IsNotExist(err) {
-		return fmt.Errorf("model '%s' does not exist", entityName)
+		return fmt.Errorf("entity '%s' does not exist", entityName)
 	}
 
+	columnsPath := filepath.Join(entityDir, entityName+".columns.json")
+	if _, err := os.Stat(columnsPath); os.IsNotExist(err) {
+		return fmt.Errorf("columns file does not exist for entity '%s'", entityName)
+	}
+
+	geelatoPath := filepath.Join(cwd, "geelato.json")
+	appId, err := getAppIdFromGeelatoJSON(geelatoPath)
+	if err != nil {
+		return fmt.Errorf("failed to read appId from geelato.json: %w", err)
+	}
+
+	// Parse field spec: name:type[:length]
 	parts := strings.Split(fieldSpec, ":")
 	if len(parts) < 2 {
-		return fmt.Errorf("invalid field spec: %s (format: name:type[:length])", fieldSpec)
+		return fmt.Errorf("invalid field spec format, expected name:type[:length]")
 	}
 
-	columnName := parts[0]
-	dataType := strings.ToLower(parts[1])
-
+	fieldName := parts[0]
+	dataType := parts[1]
 	length := 0
+	comment := ""
 	if len(parts) >= 3 {
 		fmt.Sscanf(parts[2], "%d", &length)
 	}
-
-	comment := ""
 	if len(parts) >= 4 {
 		comment = parts[3]
 	}
-	if comment == "" {
-		promptStr := fmt.Sprintf("Enter comment for field '%s':", columnName)
-		comment, _ = prompt.Input(promptStr)
+
+	// Determine column type based on data type
+	columnType := getColumnType(dataType, length)
+	dateTimePrecision := ""
+	if dataType == "datetime" {
+		dateTimePrecision = "0"
 	}
 
-	mgr := model.NewManager(cwd)
+	// Prepare template data
+	tableName := "platform_" + strings.ToLower(entityName)
+	tableID := "tbl_" + strings.ToLower(entityName)
+	ordinalPosition := 1
 
-	field := model.FieldDefinition{
-		ColumnName: columnName,
-		DataType:  dataType,
-		Length:    length,
-		Comment:   comment,
-		Nullable:  true,
+	// Read existing columns to get ordinal position
+	columnsData, err := os.ReadFile(columnsPath)
+	if err != nil {
+		return fmt.Errorf("failed to read columns file: %w", err)
 	}
 
-	if err := mgr.AddField(entityName, field); err != nil {
-		return fmt.Errorf("failed to add field: %w", err)
+	var columnsDef struct {
+		Meta    map[string]interface{}   `json:"meta"`
+		Columns []map[string]interface{} `json:"columns"`
 	}
 
-	logger.Success("Field added to model '%s':", entityName)
-	logger.Infof("  Name: %s", columnName)
-	logger.Infof("  Type: %s", dataType)
-	if length > 0 {
-		logger.Infof("  Length: %d", length)
+	if err := json.Unmarshal(columnsData, &columnsDef); err != nil {
+		return fmt.Errorf("failed to parse columns file: %w", err)
 	}
-	logger.Infof("  Comment: %s", comment)
+	ordinalPosition = len(columnsDef.Columns) + 1
 
+	// Render column using template
+	tm := initializer.NewTemplateManager()
+	columnData := initializer.ColumnTemplateData{
+		EntityName:        entityName,
+		EntityNameLower:   strings.ToLower(entityName),
+		FieldName:         fieldName,
+		FieldNameLower:    strings.ToLower(fieldName),
+		AppID:             appId,
+		TableID:           tableID,
+		TableName:         tableName,
+		ColumnName:        stringsToSnakeCase(fieldName),
+		ColumnType:        columnType,
+		DataType:          dataType,
+		Length:            length,
+		DateTimePrecision: dateTimePrecision,
+		OrdinalPosition:   ordinalPosition,
+		Comment:           comment,
+	}
+
+	columnContent, err := tm.RenderColumnTemplate("templates/meta/simple/column.json.tmpl", columnData)
+	if err != nil {
+		return fmt.Errorf("failed to render column template: %w", err)
+	}
+
+	// Parse rendered column JSON
+	var newColumn map[string]interface{}
+	if err := json.Unmarshal([]byte(columnContent), &newColumn); err != nil {
+		return fmt.Errorf("failed to parse rendered column: %w", err)
+	}
+
+	columnsDef.Columns = append(columnsDef.Columns, newColumn)
+
+	// Write back
+	output, err := json.MarshalIndent(columnsDef, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal columns: %w", err)
+	}
+
+	if err := os.WriteFile(columnsPath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write columns file: %w", err)
+	}
+
+	logger.Infof("Field '%s' added to entity '%s' successfully!", fieldName, entityName)
 	return nil
 }
 
+// getColumnType returns the column type string based on data type and length
+func getColumnType(dataType string, length int) string {
+	switch dataType {
+	case "string":
+		if length > 0 {
+			return fmt.Sprintf("varchar(%d)", length)
+		}
+		return "varchar(255)"
+	case "int":
+		return "int"
+	case "bigint":
+		return "bigint"
+	case "decimal":
+		if length > 0 {
+			return fmt.Sprintf("decimal(%d,2)", length)
+		}
+		return "decimal(10,2)"
+	case "datetime":
+		return "datetime"
+	case "boolean":
+		return "tinyint(1)"
+	case "text":
+		return "text"
+	default:
+		return "varchar(255)"
+	}
+}
+
+// stringsToSnakeCase converts CamelCase to snake_case
+func stringsToSnakeCase(s string) string {
+	var result []byte
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 'A' && s[i] <= 'Z' {
+			if i > 0 {
+				result = append(result, '_')
+			}
+			result = append(result, s[i]+32)
+		} else {
+			result = append(result, s[i])
+		}
+	}
+	return string(result)
+}
+
 func NewAddViewSubCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "view <entity-name> <view-name>",
 		Short: "添加视图",
-		Long: `向指定模型添加视图定义
-
-示例:
-  geelato model add view User active-users`,
-		Args: cobra.MinimumNArgs(2),
+		Long:  `向指定模型添加新视图`,
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entityName := args[0]
 			viewName := args[1]
 			return runAddView(entityName, viewName)
 		},
 	}
-
-	return cmd
 }
 
 func runAddView(entityName, viewName string) error {
@@ -374,44 +402,42 @@ func runAddView(entityName, viewName string) error {
 
 	entityDir := filepath.Join(cwd, "meta", entityName)
 	if _, err := os.Stat(entityDir); os.IsNotExist(err) {
-		return fmt.Errorf("model '%s' does not exist", entityName)
+		return fmt.Errorf("entity '%s' does not exist", entityName)
 	}
 
-	mgr := model.NewManager(cwd)
-
-	view := model.ViewDefinition{
-		Name:        viewName,
-		Description: viewName,
+	viewPath := filepath.Join(entityDir, entityName+"."+viewName+".view.sql")
+	if _, err := os.Stat(viewPath); err == nil {
+		return fmt.Errorf("view '%s' already exists", viewName)
 	}
 
-	if err := mgr.AddView(entityName, view); err != nil {
-		return fmt.Errorf("failed to add view: %w", err)
+	content := fmt.Sprintf("-- @meta\nSELECT * FROM platform_%s WHERE deleted_at IS NULL", strings.ToLower(entityName))
+	if err := os.WriteFile(viewPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to create view file: %w", err)
 	}
 
-	logger.Success("View '%s' added to model '%s'", viewName, entityName)
+	logger.Infof("View '%s' added to entity '%s' successfully!", viewName, entityName)
 	return nil
 }
 
 func NewAddCheckSubCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "check <entity-name> <expression>",
+	return &cobra.Command{
+		Use:   "check <entity-name> <expression> [description]",
 		Short: "添加检查约束",
-		Long: `向指定模型添加检查约束
-
-示例:
-  geelato model add check User "status IN (0,1)"`,
-		Args: cobra.MinimumNArgs(2),
+		Long:  `向指定模型添加检查约束`,
+		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entityName := args[0]
 			expression := args[1]
-			return runAddCheck(entityName, expression)
+			description := ""
+			if len(args) > 2 {
+				description = args[2]
+			}
+			return runAddCheck(entityName, expression, description)
 		},
 	}
-
-	return cmd
 }
 
-func runAddCheck(entityName, expression string) error {
+func runAddCheck(entityName, expression, description string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
@@ -419,45 +445,61 @@ func runAddCheck(entityName, expression string) error {
 
 	entityDir := filepath.Join(cwd, "meta", entityName)
 	if _, err := os.Stat(entityDir); os.IsNotExist(err) {
-		return fmt.Errorf("model '%s' does not exist", entityName)
+		return fmt.Errorf("entity '%s' does not exist", entityName)
 	}
 
-	mgr := model.NewManager(cwd)
-
-	check := model.CheckDefinition{
-		Expression: expression,
+	checkPath := filepath.Join(entityDir, entityName+".check.json")
+	data, err := os.ReadFile(checkPath)
+	if err != nil {
+		return fmt.Errorf("failed to read check file: %w", err)
 	}
 
-	if err := mgr.AddCheck(entityName, check); err != nil {
-		return fmt.Errorf("failed to add check: %w", err)
+	var checkDef struct {
+		Meta   map[string]interface{}   `json:"meta"`
+		Checks []map[string]interface{} `json:"checks"`
 	}
 
-	logger.Success("Check constraint added to model '%s'", entityName)
-	logger.Infof("  Expression: %s", expression)
+	if err := json.Unmarshal(data, &checkDef); err != nil {
+		return fmt.Errorf("failed to parse check file: %w", err)
+	}
+
+	newCheck := map[string]interface{}{
+		"id":         fmt.Sprintf("chk_%s_%d", strings.ToLower(entityName), len(checkDef.Checks)+1),
+		"expression": expression,
+		"comment":    description,
+	}
+
+	checkDef.Checks = append(checkDef.Checks, newCheck)
+
+	output, err := json.MarshalIndent(checkDef, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal checks: %w", err)
+	}
+
+	if err := os.WriteFile(checkPath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write check file: %w", err)
+	}
+
+	logger.Infof("Check constraint added to entity '%s' successfully!", entityName)
 	return nil
 }
 
 func NewAddPermissionSubCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "permission <entity-name> <action> <role>",
+	return &cobra.Command{
+		Use:   "permission <entity-name> <operation> <role>",
 		Short: "添加权限",
-		Long: `向指定模型添加权限配置
-
-示例:
-  geelato model add permission User read admin`,
-		Args: cobra.MinimumNArgs(3),
+		Long:  `向指定模型添加权限配置`,
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entityName := args[0]
-			action := args[1]
+			operation := args[1]
 			role := args[2]
-			return runAddPermission(entityName, action, role)
+			return runAddPermission(entityName, operation, role)
 		},
 	}
-
-	return cmd
 }
 
-func runAddPermission(entityName, action, role string) error {
+func runAddPermission(entityName, operation, role string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
@@ -465,22 +507,55 @@ func runAddPermission(entityName, action, role string) error {
 
 	entityDir := filepath.Join(cwd, "meta", entityName)
 	if _, err := os.Stat(entityDir); os.IsNotExist(err) {
-		return fmt.Errorf("model '%s' does not exist", entityName)
+		return fmt.Errorf("entity '%s' does not exist", entityName)
 	}
 
-	mgr := model.NewManager(cwd)
+	permissionPath := filepath.Join(entityDir, entityName+".permission.json")
 
-	perm := model.PermissionDefinition{
-		Action: action,
-		Role:   role,
+	var permissionDef struct {
+		Meta        map[string]interface{}   `json:"meta"`
+		Permissions []map[string]interface{} `json:"permissions"`
 	}
 
-	if err := mgr.AddPermission(entityName, perm); err != nil {
-		return fmt.Errorf("failed to add permission: %w", err)
+	if _, err := os.Stat(permissionPath); err == nil {
+		data, err := os.ReadFile(permissionPath)
+		if err != nil {
+			return fmt.Errorf("failed to read permission file: %w", err)
+		}
+		if err := json.Unmarshal(data, &permissionDef); err != nil {
+			return fmt.Errorf("failed to parse permission file: %w", err)
+		}
+	} else {
+		permissionDef = struct {
+			Meta        map[string]interface{}   `json:"meta"`
+			Permissions []map[string]interface{} `json:"permissions"`
+		}{
+			Meta: map[string]interface{}{
+				"version":   "1.0.0",
+				"tableName": "platform_" + strings.ToLower(entityName),
+			},
+			Permissions: []map[string]interface{}{},
+		}
 	}
 
-	logger.Success("Permission added to model '%s'", entityName)
-	logger.Infof("  Action: %s", action)
-	logger.Infof("  Role: %s", role)
+	newPermission := map[string]interface{}{
+		"id":        fmt.Sprintf("perm_%s_%s_%s", strings.ToLower(entityName), operation, strings.ToLower(role)),
+		"operation": operation,
+		"role":      role,
+		"allow":     true,
+	}
+
+	permissionDef.Permissions = append(permissionDef.Permissions, newPermission)
+
+	output, err := json.MarshalIndent(permissionDef, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal permissions: %w", err)
+	}
+
+	if err := os.WriteFile(permissionPath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write permission file: %w", err)
+	}
+
+	logger.Infof("Permission added to entity '%s' successfully!", entityName)
 	return nil
 }

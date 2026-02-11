@@ -1,0 +1,21 @@
+-- @meta
+-- @id view_{{.EntityNameLower}}_default
+-- @appId {{.AppID}}
+-- @connectId null
+-- @viewConstruct null
+-- @viewColumn null
+-- @description {{.ModelName}}实体的默认查询视图
+-- @title {{.ModelName}}默认视图
+-- @viewName {{.EntityName}}.default
+-- @viewType entity
+-- @entityName {{.EntityName}}
+-- @enableStatus 1
+-- @linked 0
+-- @delStatus 0
+-- @seqNo 0
+
+SELECT
+  t.id
+FROM {{.TableName}} t
+WHERE t.del_status = 0
+ORDER BY t.seq_no ASC, t.create_at DESC;

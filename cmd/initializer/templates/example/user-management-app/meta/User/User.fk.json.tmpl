@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "tableId": "tbl_user_001"
+  },
+  "foreignKeys": [
+    {
+      "id": "fk_user_dept",
+      "appId": null,
+      "mainTableSchema": "platform",
+      "mainTableId": "tbl_user_001",
+      "mainTable": "platform_user",
+      "mainTableCol": "dept_id",
+      "foreignTableSchema": "platform",
+      "foreignTableId": "tbl_department_001",
+      "foreignTable": "platform_department",
+      "foreignTableCol": "id",
+      "deleteAction": "SET NULL",
+      "updateAction": "CASCADE",
+      "description": "部门外键关联",
+      "enableStatus": 1,
+      "deptId": null,
+      "buId": null,
+      "tenantCode": null,
+      "delStatus": 0,
+      "seqNo": 1
+    },
+    {
+      "id": "fk_user_creator",
+      "appId": null,
+      "mainTableSchema": "platform",
+      "mainTableId": "tbl_user_001",
+      "mainTable": "platform_user",
+      "mainTableCol": "creator",
+      "foreignTableSchema": "platform",
+      "foreignTableId": "tbl_sys_user",
+      "foreignTable": "platform_sys_user",
+      "foreignTableCol": "id",
+      "deleteAction": "NO ACTION",
+      "updateAction": "NO ACTION",
+      "description": "创建者外键关联",
+      "enableStatus": 1,
+      "deptId": null,
+      "buId": null,
+      "tenantCode": null,
+      "delStatus": 0,
+      "seqNo": 2
+    },
+    {
+      "id": "fk_user_updater",
+      "appId": null,
+      "mainTableSchema": "platform",
+      "mainTableId": "tbl_user_001",
+      "mainTable": "platform_user",
+      "mainTableCol": "updater",
+      "foreignTableSchema": "platform",
+      "foreignTableId": "tbl_sys_user",
+      "foreignTable": "platform_sys_user",
+      "foreignTableCol": "id",
+      "deleteAction": "NO ACTION",
+      "updateAction": "NO ACTION",
+      "description": "更新者外键关联",
+      "enableStatus": 1,
+      "deptId": null,
+      "buId": null,
+      "tenantCode": null,
+      "delStatus": 0,
+      "seqNo": 3
+    }
+  ]
+}

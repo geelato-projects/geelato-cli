@@ -1,0 +1,20 @@
+-- @meta
+-- @id view_{{.EntityNameLower}}_{{.ViewNameLower}}
+-- @appId {{.AppID}}
+-- @connectId null
+-- @viewConstruct null
+-- @viewColumn null
+-- @description {{.Description}}
+-- @title {{.Title}}
+-- @viewName {{.EntityName}}.{{.ViewName}}
+-- @viewType entity
+-- @entityName {{.EntityName}}
+-- @enableStatus 1
+-- @linked 0
+-- @delStatus 0
+-- @seqNo {{.SeqNo}}
+
+SELECT {{.SelectColumns}}
+FROM {{.TableName}} t
+WHERE t.del_status = 0
+{{.OrderBy}};

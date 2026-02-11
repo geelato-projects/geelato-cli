@@ -1,0 +1,40 @@
+-- @meta
+-- @id view_user_default
+-- @appId null
+-- @connectId null
+-- @viewConstruct null
+-- @viewColumn null
+-- @description User实体的默认查询视图
+-- @title User默认视图
+-- @viewName User.default
+-- @viewType entity
+-- @entityName User
+-- @enableStatus 1
+-- @linked 0
+-- @deptId null
+-- @buId null
+-- @tenantCode null
+-- @delStatus 0
+-- @seqNo 0
+
+SELECT
+  t.id,
+  t.name,
+  t.login_name,
+  t.email,
+  t.phone,
+  t.status,
+  t.dept_id,
+  t.create_at,
+  t.creator,
+  t.creator_name,
+  t.update_at,
+  t.updater,
+  t.updater_name,
+  t.del_status,
+  t.delete_at,
+  t.tenant_code,
+  t.seq_no
+FROM platform_user t
+WHERE t.del_status = 0
+ORDER BY t.seq_no ASC, t.create_at DESC;

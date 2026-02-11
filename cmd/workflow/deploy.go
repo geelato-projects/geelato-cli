@@ -39,14 +39,6 @@ func init() {
 	workflowDeployCmd.Flags().BoolVar(&deployForce, "force", false, "强制部署")
 }
 
-type WorkflowDeployment struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Version    string    `json:"version"`
-	DeployedAt time.Time `json:"deployedAt"`
-	Status     string    `json:"status"`
-}
-
 func runDeploy(name string) error {
 	logger.Info("部署工作流...")
 	logger.Info("============")
