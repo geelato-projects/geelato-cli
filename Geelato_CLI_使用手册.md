@@ -236,10 +236,33 @@ http://{host}:{port}/{tenant}/{app-code}
 - `{tenant}`：租户标识，用于隔离不同租户的数据
 - `{app-code}`：应用代码，标识具体应用
 
-### 4.2 克隆应用
+### 4.2 命令语法与参数
 
 ```bash
-# 基本用法 - 克隆应用到当前目录
+geelato clone <url> [选项]
+
+# 或使用完整参数形式
+geelato clone <url> --output <目录> --version <版本> --skip-extract
+```
+
+**参数说明：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| url | 字符串 | 是 | 应用仓库地址，格式为 `http://{host}:{port}/{tenant}/{app-code}` |
+
+**选项说明：**
+
+| 选项 | 简写 | 类型 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| --output | -o | 字符串 | （应用代码） | 指定输出目录，不指定则使用应用代码作为目录名 |
+| --version | 无 | 字符串 | latest | 指定要克隆的应用版本 |
+| --skip-extract | 无 | 布尔值 | false | 跳过解压步骤，直接处理响应数据 |
+
+### 4.3 克隆应用
+
+```bash
+# 基本用法 - 克隆应用到当前目录（自动以应用代码为目录名）
 geelato clone http://localhost:8080/default/myapp
 
 # 指定输出目录
@@ -250,74 +273,96 @@ geelato clone http://localhost:8080/mytenant/myapp
 
 # 指定应用版本
 geelato clone http://localhost:8080/default/myapp --version latest
+
+# 跳过解压步骤（高级用法）
+geelato clone http://localhost:8080/default/myapp --skip-extract
 ```
 
-克隆过程包括以下步骤：
-1. 解析 URL 提取 tenant 和 appCode
-2. 连接 Geelato 服务器
-3. 下载应用数据
-4. 渲染模型文件（define.json, columns.json, check.json, fk.json, view.sql）
-5. 渲染页面文件
-6. 保存到本地目录
+**克隆过程详解：**
 
-### 4.3 克隆后的目录结构
+克隆命令的执行过程包含以下六个步骤，每个步骤都有明确的日志输出，方便跟踪进度和排查问题：
+
+1. **URL 解析**：解析输入的 URL，提取 tenant 和 appCode，同时构建 API 服务器地址
+2. **建立连接**：向服务器的 `/api/cli/app/clone` 端点发送 POST 请求，携带 appCode、tenant 和 version 参数
+3. **下载数据**：接收服务器返回的应用数据，包含实体定义、页面配置、API 脚本和工作流信息
+4. **渲染模型文件**：将服务器返回的元数据渲染为本地文件，包括 define.json、columns.json、check.json、fk.json 和视图 SQL 文件
+5. **渲染页面文件**：处理页面数据，生成 source.json、release.json、preview.json 等页面资源文件
+6. **保存到本地**：在指定目录创建完整的项目结构，包括必要的占位文件
+
+**成功输出示例：**
 
 ```bash
-克隆成功后的目录结构：
+$ geelato clone http://localhost:8080/default/myapp
+[INFO] Parsing URL: tenant=default, appCode=myapp, apiURL=http://localhost:8080
+[INFO] Cloning app 'myapp' to 'myapp'...
+[INFO] Requesting: http://localhost:8080/api/cli/app/clone
+[INFO] Response code: 200, data length: 1024
+[INFO] Found nested format: v1
+[INFO] Parsed: entities=3, pages=5, apis=8, workflows=2
+[INFO] Processing entities: 3
+[INFO] Processing pages: 5
+[INFO] Processing APIs: 8
+[INFO] Processing workflows: 2
+[SUCCESS] Clone completed successfully!
+[INFO] App cloned to: myapp
+```
+
+### 4.4 克隆后的目录结构
+
+克隆成功后，会在指定目录创建完整的项目结构，目录组织遵循 Geelato 平台的标准规范：
+
+```
 myapp/
 ├── geelato.json              # 应用配置文件（包含 repo 信息）
-├── api/                      # API 脚本目录（即使为空也会创建）
-│   └── .gitkeep
+├── api/                      # API 脚本目录
+│   ├── .gitkeep             # 目录占位符（无 API 时）
+│   └── userApi/             # API 脚本目录（以 API 代码命名）
+│       ├── userApi.define.json
+│       ├── userApi.source.js
+│       └── userApi.release.js
 ├── meta/                     # 模型定义目录
-│   └── User/
-│       ├── User.define.json
-│       ├── User.columns.json
-│       ├── User.check.json
-│       ├── User.fk.json
-│       └── User.default.view.sql
+│   └── User/                # 用户实体（以实体名称命名）
+│       ├── User.define.json  # 表定义
+│       ├── User.columns.json # 字段定义
+│       ├── User.check.json  # 约束定义
+│       ├── User.fk.json     # 外键定义
+│       └── User.default.view.sql  # 默认视图 SQL
 ├── page/                     # 页面定义目录
-│   └── userListPage/
+│   ├── .gitkeep             # 目录占位符（无页面时）
+│   └── userListPage/        # 页面目录（以页面代码命名）
 │       ├── userListPage.define.json
 │       ├── userListPage.source.json
 │       ├── userListPage.release.json
 │       └── userListPage.preview.json
-└── workflow/                 # 工作流定义目录（即使为空也会创建）
-    └── .gitkeep
+└── workflow/                 # 工作流定义目录
+    └── userApproval/         # 工作流目录
+        ├── userApproval.define.json
+        └── userApproval.json
 ```
 
-### 4.4 应用配置文件说明
+### 4.5 应用配置文件说明
 
-克隆成功后，会在应用根目录生成 `geelato.json` 配置文件，其中 `repo` 字段记录了克隆来源地址：
+克隆成功后，会在应用根目录生成 `geelato.json` 配置文件，记录应用的核心元数据和仓库来源信息。
 
-```json
-{
-  "meta": {
-    "version": "1.0.0",
-    "appId": "app_myapp",
-    "name": "myapp",
-    "description": "My Application",
-    "createdAt": "2026-02-11T13:31:03+08:00"
-  },
-  "config": {
-    "api": {
-      "url": "",
-      "timeout": 30
-    },
-    "repo": {
-      "url": "http://localhost:8080/default/myapp"
-    },
-    "sync": {
-      "autoPush": false,
-      "autoPull": false
-    }
-  }
-}
-```
+**repo.url 字段的作用：**
 
-`repo.url` 字段的作用：
-- 标识应用的克隆来源
-- 供 `push`、`pull`、`sync` 等命令解析服务器地址
-- 可以通过 `geelato config repo` 命令更新
+1. 标识应用的克隆来源，便于追溯代码的历史来源
+2. 供 `push`、`pull`、`sync` 等命令解析服务器地址和租户信息
+3. 可以通过 `geelato config repo` 命令更新仓库地址，实现应用迁移
+
+### 4.6 错误处理
+
+克隆过程中可能遇到以下常见错误，表格提供了错误原因分析和解决方法：
+
+| 错误信息 | 原因分析 | 解决方法 |
+|----------|----------|----------|
+| invalid URL format | URL 格式不正确 | 检查 URL 是否包含协议头（http://）和必要的路径部分 |
+| tenant and app code cannot be empty | URL 路径中缺少租户或应用代码 | 确保 URL 格式为 `/tenant/app-code` |
+| clone failed with status 404 | 服务器端找不到指定应用 | 检查 appCode 和 tenant 是否正确，确认应用是否存在 |
+| clone failed with status 500 | 服务器内部错误 | 检查服务器日志，联系管理员排查问题 |
+| failed to request | 网络连接失败 | 检查网络连通性，确认服务器地址和端口是否正确 |
+| failed to render and save | 文件写入失败 | 检查输出目录权限，确保有写入权限 |
+| context deadline exceeded | 请求超时 | 增加超时时间或检查服务器响应速度 |
 
 ## 五、仓库配置命令详解
 
