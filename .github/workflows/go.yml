@@ -59,6 +59,9 @@ jobs:
         mkdir -p release
         go build -ldflags "-X main.version=${{ steps.version.outputs.version }}" -o release/geelato-${{ steps.version.outputs.version }}-darwin-amd64 main.go
 
+    - name: Ensure release directory exists
+      run: mkdir -p release
+
     - name: List release files
       run: |
         echo "Release files:"
